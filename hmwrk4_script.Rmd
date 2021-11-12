@@ -1,0 +1,75 @@
+---
+title: "hmwrk_wk4"
+author: "Lorena Brambila"
+date: "11/12/2021"
+output: html_document
+---
+
+# Inequality task - week 4
+
+## Reproduce
+
+### package versions
+
+```{r first, eval=FALSE}
+#this it to load all packages used in code with the version when this was developed
+#i have taken a snapshot with
+renv::snapshot()
+
+#install the same packages
+renv::restore()
+```
+
+### Read in data:
+
+Located within the Data folder:
+(this is good practice so people can download the data you are using)
+*HDI data from: http://hdr.undp.org/en/indicators/68606#
+*Shapefile from: https://hub.arcgis.com/datasets/2b93b06dc0dc4e809d3c8db5cb96ba69_0/explore?location=-0.047158%2C0.000000%2C1.00
+
+## Load packages
+```{r}
+library(tidyverse)
+library(sf)
+library(here)
+library(janitor)
+library(countrycode)
+```
+
+##Read data in 
+```{r}
+HDI <- read_csv(here::here("Data", "Gender Inequality Index (GII).csv"),
+                locale = locale(encoding = "latin1"),
+                na = "..", skip=5)
+#na = ".." to exclude not available data from csv and skip = 5 because the first 5 rows are headings
+World <- st_read(here::here("Data", "World_Countries__Generalized_.shp"))
+```
+
+## Column names
+
+Select columns we want and change country name to country code, using the 'country code' package
+
+We could also just join it without this on the country name column
+
+```{r}
+HDIcols<- HDI %>%
+  clean_names()%>% #removes all capitals and spaces
+  select(country, x2019, x2010)%>%
+  mutate(difference=x2019-x2010)%>%
+  slice(1:189,)%>% #we look at data set and get rid of the rows we don't want with slice / , is for columns
+  mutate(iso_code=countrycode(country, origin = 'country.name', destination ='iso2c'))
+
+```
+
+## Join
+
+Join the csv to world shape file 
+
+```{r}
+Join_HDI <- World %>%
+  clean_names() %>%
+  left_join(.,
+            HDIcols,
+            by = c("aff_iso" = "iso_code"))
+```
+
